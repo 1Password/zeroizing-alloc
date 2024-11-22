@@ -20,7 +20,7 @@ correctness and performance of changes made may not be worthwhile when weighed a
 ### Research
 
 On semi-recent Apple platforms (macOS 13+, iOS/tvOS 16.1+), the default allocator in `libSystem` [started zeroizing on free() by default.](https://mjtsai.com/blog/2022/09/20/zeroing-freed-memory/). 
-This functionality is better optimized and more reliable then this wrapper, so it may be preferred. However, it is possible to [disable the behavior](https://github.com/apple-oss-distributions/libmalloc/blob/ac949e88b5b5fb90bf2e051c8a73754136ff1b43/private/malloc_private.h#L99)
+This functionality is better optimized and more reliable than this wrapper, so it may be preferred. However, it is possible to [disable the behavior](https://github.com/apple-oss-distributions/libmalloc/blob/ac949e88b5b5fb90bf2e051c8a73754136ff1b43/private/malloc_private.h#L99)
 in a few ways depending on your threat model.
 
 ## Credits
