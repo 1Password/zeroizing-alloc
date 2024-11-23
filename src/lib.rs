@@ -39,8 +39,8 @@ unsafe fn zero(ptr: *mut u8, len: usize) {
 
 #[cfg(not(feature = "reference_impl"))]
 unsafe fn clear_bytes(ptr: *mut u8, len: usize) {
-    // We expect this to optimize into a `memset` for performance. Due to the use of raw pointers, the compiler
-    // doesn't know that the slice we are wiping is about to be destroyed anyway.
+    // We expect this to optimize into a `memset` for performance. Due to this function only being used via `read_volatile`,
+    // the compiler doesn't know that the slice this function will be wiping is about to be destroyed anyway.
     //
     // SAFETY: The caller must only pass a valid allocated object.
     ptr.write_bytes(0x0, len);
