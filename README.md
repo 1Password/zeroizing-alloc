@@ -1,6 +1,9 @@
 ## About
 
-This is a proof-of-concept crate for a [Global Allocator](https://doc.rust-lang.org/std/alloc/trait.GlobalAlloc.html) in Rust that securely zeroizes all objects
+[![crates.io version](https://img.shields.io/crates/v/zeroizing-alloc.svg)](https://crates.io/crates/zeroizing-alloc)
+[![crates.io downloads](https://img.shields.io/crates/d/zeroizing-alloc.svg)](https://crates.io/crates/zeroizing-alloc)
+
+`zeroizing-alloc` is a proof-of-concept crate for a [Global Allocator](https://doc.rust-lang.org/std/alloc/trait.GlobalAlloc.html) in Rust that securely zeroizes all objects
 upon deallocation, with a very low performance impact. It otherwise wraps the provided allocator and keeps its behavior.
 
 ### Example
