@@ -3,7 +3,8 @@ name = "zeroizing-alloc"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-publish = false
+repository = "https://github.com/1Password/zeroizing-alloc"
+description = "Minimal allocator wrapper to zero-on-free data for security"
 
 [features]
 reference_impl = []
