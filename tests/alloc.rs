@@ -1,60 +1,58 @@
 use core::alloc::{GlobalAlloc, Layout};
-use std::{
-    alloc::System,
-    sync::{Mutex, OnceLock},
-};
+use quickcheck_macros::quickcheck;
+use std::{alloc::System, cmp::min, sync::Mutex};
 use zeroizing_alloc::ZeroAlloc;
 
+const CAPACITY: usize = 2048;
+
 #[global_allocator]
-static ALLOC: ZeroAlloc<SpyAlloc<System>> = ZeroAlloc(SpyAlloc(System));
-
-#[test]
-fn can_alloc() {
-    let allocation = core::hint::black_box(std::vec![1, 1, 1, 2, 2, 2]);
-    drop(allocation); // Cannot check if zeroed post-drop without UB
-
-    let mut allocation_2 = core::hint::black_box(Vec::<u8>::with_capacity(2));
-    allocation_2.resize(2048, 0xFF);
-    drop(allocation_2); // Cannot check if zeroed post-drop without UB
-}
+static ALLOC: ZeroAlloc<SpyAlloc<System, CAPACITY>> = ZeroAlloc(SpyAlloc(
+    System,
+    Mutex::new(AllocInfo {
+        alloc_count: 0,
+        zeroed: [false; CAPACITY],
+    }),
+));
 
 #[test]
 fn freed_memory_is_zeroed() {
-    SpyAlloc::<System>::clear_log();
-
     let allocation = core::hint::black_box(vec![1, 1, 1, 2, 2, 2]);
     drop(allocation);
-
-    let freed = SpyAlloc::<System>::last_freed();
-    assert_eq!(freed, [0; 32], "memory not zeroed: {freed:?}");
 
     let mut allocation_2 = core::hint::black_box(Vec::<u8>::with_capacity(2));
     allocation_2.resize(2048, 0xFF);
     drop(allocation_2);
 
-    let freed = SpyAlloc::<System>::last_freed();
-    assert_eq!(freed, [0; 32], "memory not zeroed: {freed:?}");
+    assert!(&ALLOC.0.verify_allocs_zeroed());
 }
 
-struct SpyAlloc<A: GlobalAlloc>(A);
-
-impl<A: GlobalAlloc> SpyAlloc<A> {
-    fn log() -> &'static Mutex<[u8; 32]> {
-        static LOG: OnceLock<Mutex<[u8; 32]>> = OnceLock::new();
-        LOG.get_or_init(|| Mutex::new([0; 32]))
+#[quickcheck]
+fn prop_allocations_are_zeroed(input: Vec<u32>) -> bool {
+    // skip empty vectors since they dont allocate
+    if input.is_empty() {
+        return true;
     }
+    drop(input);
+    ALLOC.0.verify_allocs_zeroed()
+}
 
-    fn last_freed() -> [u8; 32] {
-        *Self::log().lock().unwrap()
-    }
+#[derive(Clone, Copy)]
+struct AllocInfo {
+    alloc_count: usize,
+    zeroed: [bool; CAPACITY],
+}
 
-    fn clear_log() {
-        let mut log = Self::log().lock().unwrap();
-        log.fill(0);
+struct SpyAlloc<A: GlobalAlloc, const CAPACITY: usize>(A, Mutex<AllocInfo>);
+
+impl<A: GlobalAlloc, const CAPACITY: usize> SpyAlloc<A, CAPACITY> {
+    fn verify_allocs_zeroed(&self) -> bool {
+        let info = self.1.lock().unwrap();
+        let allocs_to_check = min(CAPACITY, info.alloc_count);
+        info.zeroed[..allocs_to_check].iter().all(|&b| b)
     }
 }
 
-unsafe impl<A: GlobalAlloc> GlobalAlloc for SpyAlloc<A> {
+unsafe impl<A: GlobalAlloc, const CAPACITY: usize> GlobalAlloc for SpyAlloc<A, CAPACITY> {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         self.0.alloc(layout)
     }
@@ -62,12 +60,13 @@ unsafe impl<A: GlobalAlloc> GlobalAlloc for SpyAlloc<A> {
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         let slice = core::slice::from_raw_parts(ptr, layout.size());
 
-        let mut log = Self::log().lock().unwrap();
-        let len = slice.len().min(32);
-        log[..len].copy_from_slice(&slice[..len]);
-        if len < 32 {
-            log[len..].fill(0);
+        let mut alloc_info = self.1.lock().unwrap();
+
+        if slice.iter().all(|i| *i == 0) {
+            let alloc_index = alloc_info.alloc_count % CAPACITY;
+            alloc_info.zeroed[alloc_index] = true;
         }
+        alloc_info.alloc_count += 1;
 
         self.0.dealloc(ptr, layout);
     }
