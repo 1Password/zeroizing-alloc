@@ -36,7 +36,6 @@ fn prop_allocations_are_zeroed(input: Vec<u32>) -> bool {
     ALLOC.0.verify_allocs_zeroed()
 }
 
-#[derive(Clone, Copy)]
 struct AllocInfo<const CAPACITY: usize> {
     alloc_count: usize,
     zeroed: [bool; CAPACITY],
