@@ -8,7 +8,7 @@ const CAPACITY: usize = 2048;
 #[global_allocator]
 static ALLOC: ZeroAlloc<SpyAlloc<System, CAPACITY>> = ZeroAlloc(SpyAlloc(
     System,
-    Mutex::new(AllocInfo {
+    Mutex::new(AllocInfo::<CAPACITY> {
         alloc_count: 0,
         zeroed: [false; CAPACITY],
     }),
@@ -37,12 +37,12 @@ fn prop_allocations_are_zeroed(input: Vec<u32>) -> bool {
 }
 
 #[derive(Clone, Copy)]
-struct AllocInfo {
+struct AllocInfo<const CAPACITY: usize> {
     alloc_count: usize,
     zeroed: [bool; CAPACITY],
 }
 
-struct SpyAlloc<A: GlobalAlloc, const CAPACITY: usize>(A, Mutex<AllocInfo>);
+struct SpyAlloc<A: GlobalAlloc, const CAPACITY: usize>(A, Mutex<AllocInfo<CAPACITY>>);
 
 impl<A: GlobalAlloc, const CAPACITY: usize> SpyAlloc<A, CAPACITY> {
     fn verify_allocs_zeroed(&self) -> bool {
