@@ -10,3 +10,7 @@ description = "Minimal allocator wrapper to zero-on-free data for security"
 reference_impl = []
 
 [dependencies]
+
+[dev-dependencies]
+quickcheck = "1.0.3"
+quickcheck_macros = "1.1.0"
