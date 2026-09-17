@@ -69,7 +69,7 @@ unsafe fn zero(ptr: *mut u8, len: usize) {
     // might allow optimizing away clearing).
     //
     // SAFETY: This static is always initialized to the correct value.
-    let wipe = unsafe { core::ptr::addr_of!(WIPER).read_volatile() };
+    let wipe = unsafe { core::ptr::read_volatile(&raw const WIPER) };
     wipe(ptr, len);
 }
 
@@ -85,7 +85,10 @@ where
 
     #[inline]
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        zero(ptr, layout.size());
+        // This extra volatile read is intended to prevent optimizers (such as PGO) from observing that
+        // there is a dead store, as zeroizing and freeing happen on two different objects that can't be linked.
+        let wipe_ptr = unsafe { core::ptr::read_volatile(&raw const ptr) };
+        zero(wipe_ptr, layout.size());
         self.0.dealloc(ptr, layout);
     }
 
