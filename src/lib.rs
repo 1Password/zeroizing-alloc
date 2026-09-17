@@ -96,4 +96,8 @@ where
     unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
         self.0.alloc_zeroed(layout)
     }
+
+    // `realloc` is explicitly not implemented, the default `GlobalAlloc` implementation of it always
+    // makes a new block and deallocates the old one (meaning it is wiped). This behavior is reliable as
+    // the generic trait can't make assumptions about what an allocation looks like and actually reuse the memory.
 }
